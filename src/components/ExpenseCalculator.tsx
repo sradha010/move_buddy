@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, TrendingDown, AlertCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import GooglePlacesInput, { type PlaceData } from './base/GooglePlacesInput';
 import { useDistanceMatrix } from '../hooks/useDistanceMatrix';
 import { loadGoogleMaps } from '../lib/googleMaps';
@@ -8,11 +8,6 @@ import { loadGoogleMaps } from '../lib/googleMaps';
 const BUDDYRIDE_RATE = 6;        // ₹/km
 const TRIPS_PER_MONTH = 40;      // 2 trips × 5 days × 4 weeks
 
-const COMPETITORS = [
-  { name: 'Auto',      rate: 12, icon: '🛺', desc: 'Auto Rickshaw' },
-  { name: 'Car Taxi',  rate: 18, icon: '🚗', desc: 'Ola / Uber' },
-  { name: 'Bike Taxi', rate: 10, icon: '🏍️', desc: 'Rapido / Ola Bike' },
-];
 
 interface ExpenseCalculatorProps {
   mode?: 'guest' | 'host';
@@ -45,17 +40,10 @@ export default function ExpenseCalculator({ onRouteChange }: ExpenseCalculatorPr
   const durationMinutes = result?.durationMinutes || 0;
 
   // Per-trip & monthly figures
-  const buddyFare         = Math.round(BUDDYRIDE_RATE * distanceKm);
-  const buddyMonthly      = Math.round(BUDDYRIDE_RATE * distanceKm * TRIPS_PER_MONTH);
-  const competitors       = COMPETITORS.map(c => ({
-    ...c,
-    perTrip:  Math.round(c.rate * distanceKm),
-    monthly:  Math.round(c.rate * distanceKm * TRIPS_PER_MONTH),
-    savings:  Math.round((c.rate - BUDDYRIDE_RATE) * distanceKm * TRIPS_PER_MONTH),
-  }));
-  const avgMonthlySavings = competitors.length
-    ? Math.round(competitors.reduce((s, c) => s + c.savings, 0) / competitors.length)
-    : 0;
+  const BIKE_TAXI_RATE = 10;
+  const buddyFare      = Math.round(BUDDYRIDE_RATE * distanceKm);
+  const buddyMonthly   = Math.round(BUDDYRIDE_RATE * distanceKm * TRIPS_PER_MONTH);
+  const bikeTaxiMonthly = Math.round(BIKE_TAXI_RATE * distanceKm * TRIPS_PER_MONTH);
 
   const fmt = (n: number) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(n);
@@ -231,35 +219,32 @@ export default function ExpenseCalculator({ onRouteChange }: ExpenseCalculatorPr
                       Here's how much you would spend on commute
                     </p>
 
-                    {/* Competitors */}
-                    {competitors.map((c, i) => (
-                      <motion.div
-                        key={c.name}
-                        initial={{ opacity: 0, x: -12 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.07 }}
-                        className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-xl border border-gray-100"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl leading-none">{c.icon}</span>
-                          <div>
-                            <p className="text-sm font-semibold text-gray-900">{c.name}</p>
-                            <p className="text-xs text-gray-400">₹{c.rate}/km · {c.desc}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-gray-900 font-mono">
-                            {fmt(c.monthly)}<span className="text-xs font-normal text-gray-400">/mo</span>
-                          </p>
-                        </div>
-                      </motion.div>
-                    ))}
-
-                    {/* BuddyRide — highlighted winner */}
+                    {/* Bike Taxi */}
                     <motion.div
                       initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.22 }}
+                      transition={{ delay: 0.07 }}
+                      className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-xl border border-gray-100"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl leading-none">🏍️</span>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">Bike Taxi</p>
+                          <p className="text-xs text-gray-400">₹{BIKE_TAXI_RATE}/km · Rapido / Ola Bike</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900 font-mono">
+                          {fmt(bikeTaxiMonthly)}<span className="text-xs font-normal text-gray-400">/mo</span>
+                        </p>
+                      </div>
+                    </motion.div>
+
+                    {/* BuddyRide */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.14 }}
                       className="flex items-center justify-between px-4 py-3 bg-primary rounded-xl"
                     >
                       <div className="flex items-center gap-3">
@@ -273,25 +258,8 @@ export default function ExpenseCalculator({ onRouteChange }: ExpenseCalculatorPr
                         <p className="font-bold text-text-dark font-mono text-base">
                           {fmt(buddyMonthly)}<span className="text-xs font-normal opacity-60">/mo</span>
                         </p>
-                        <p className="text-xs text-text-dark/70 flex items-center gap-0.5 justify-end">
-                          <TrendingDown className="w-3 h-3" /> Cheapest
-                        </p>
                       </div>
                     </motion.div>
-
-                    {/* Savings pills */}
-                    {avgMonthlySavings > 0 && (
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        <div className="bg-green-50 rounded-xl p-3 text-center border border-green-100">
-                          <p className="text-xs text-gray-400 mb-0.5">Avg. Monthly Savings</p>
-                          <p className="font-syne font-bold text-base text-green-600">{fmt(avgMonthlySavings)}</p>
-                        </div>
-                        <div className="bg-green-50 rounded-xl p-3 text-center border border-green-100">
-                          <p className="text-xs text-gray-400 mb-0.5">Yearly Savings</p>
-                          <p className="font-syne font-bold text-base text-green-600">{fmt(avgMonthlySavings * 12)}</p>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </motion.div>
               )}

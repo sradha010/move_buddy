@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Car, Users, Menu, X, User, LogOut, Settings, Sun, Moon, LayoutDashboard } from 'lucide-react';
+import { Car, Users, Menu, X, User, LogOut, Settings, LayoutDashboard } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 
 export default function Navbar() {
-  const { mode, setMode, isAuthenticated, user, setUser, setAuthenticated, theme, setTheme } = useApp();
+  const { mode, setMode, isAuthenticated, user, setUser, setAuthenticated } = useApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const location = useLocation();
@@ -81,27 +81,6 @@ export default function Navbar() {
                 Host
               </button>
             </div>
-
-            {/* Theme Toggle */}
-            <motion.button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="w-9 h-9 rounded-full border border-text-light/20 flex items-center justify-center text-text-light hover:border-primary hover:text-primary transition-colors"
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={theme}
-                  initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
-                  animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                  exit={{ rotate: 90, opacity: 0, scale: 0.5 }}
-                  transition={{ duration: 0.18 }}
-                >
-                  {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                </motion.div>
-              </AnimatePresence>
-            </motion.button>
 
             {/* Profile / Login */}
             {isAuthenticated ? (
@@ -209,18 +188,6 @@ export default function Navbar() {
                   }`}
                 >
                   Host
-                </button>
-              </div>
-
-              {/* Mobile Theme Toggle */}
-              <div className="flex items-center gap-3 pt-2 border-t border-text-light/10">
-                <span className="text-sm text-text-light/70">Theme:</span>
-                <button
-                  onClick={() => { setTheme(theme === 'dark' ? 'light' : 'dark'); setMobileMenuOpen(false); }}
-                  className="flex items-center gap-2 px-3 py-1 rounded-full border border-primary/50 text-primary text-sm"
-                >
-                  {theme === 'dark' ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
-                  {theme === 'dark' ? 'Light' : 'Dark'}
                 </button>
               </div>
 

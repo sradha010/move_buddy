@@ -1,9 +1,8 @@
-import { motion, useInView, AnimatePresence } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import { useRef, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, Calculator, CreditCard, Car, Sun, Moon, Zap } from 'lucide-react';
+import { Sparkles, Calculator, CreditCard, Car, Zap } from 'lucide-react';
 import { HeroPhones } from '../components/AnimatedRoad';
-import { useApp } from '../store/AppContext';
 
 const features = [
   {
@@ -37,7 +36,6 @@ const stats = [
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { theme, setTheme } = useApp();
   const [headerScrolled, setHeaderScrolled] = useState(false);
 
   const featuresRef = useRef(null);
@@ -83,9 +81,7 @@ export default function LandingPage() {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           headerScrolled
-            ? theme === 'dark'
-              ? 'bg-[#0D1B1E]/90 backdrop-blur-md border-b border-teal/20 shadow-lg shadow-black/20'
-              : 'bg-white/90 backdrop-blur-md border-b border-teal/10 shadow-md'
+            ? 'bg-[#0D1B1E]/90 backdrop-blur-md border-b border-teal/20 shadow-lg shadow-black/20'
             : 'bg-transparent'
         }`}
       >
@@ -103,28 +99,8 @@ export default function LandingPage() {
               <span className="font-syne font-bold text-xl text-text-light">BuddyRide</span>
             </motion.button>
 
-            {/* Right: theme toggle + login */}
+            {/* Right: login */}
             <div className="flex items-center gap-3">
-              <motion.button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="w-9 h-9 rounded-full border border-teal/40 flex items-center justify-center text-text-light hover:border-primary hover:text-primary transition-colors"
-                aria-label="Toggle theme"
-              >
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.div
-                    key={theme}
-                    initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
-                    animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                    exit={{ rotate: 90, opacity: 0, scale: 0.5 }}
-                    transition={{ duration: 0.18 }}
-                  >
-                    {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  </motion.div>
-                </AnimatePresence>
-              </motion.button>
-
               <Link to="/auth/login" className="btn-primary text-sm py-2 px-5">
                 Login / Sign Up
               </Link>
