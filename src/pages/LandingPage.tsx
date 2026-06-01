@@ -265,7 +265,7 @@ export default function LandingPage() {
       {/* ══════════════════════════════════════════════════════
           FEATURES SECTION
       ══════════════════════════════════════════════════════ */}
-      <section ref={featuresRef} className="py-20 relative">
+      <section ref={featuresRef} className="py-20 relative bg-white">
         <div className="max-w-6xl mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -273,12 +273,9 @@ export default function LandingPage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-12"
           >
-            <h2 className="font-syne font-bold text-3xl md:text-4xl text-text-light mb-3">
+            <h2 className="font-syne font-bold text-3xl md:text-4xl text-gray-900">
               Simplify Your Daily Journey
             </h2>
-            <p className="text-muted max-w-xl mx-auto">
-              Everything you need for a smarter commute, all in one place.
-            </p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -288,13 +285,13 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 40 }}
                 animate={featuresInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.6, delay: index * 0.15 }}
-                className="card group hover:shadow-xl hover:shadow-primary/10 transition-all duration-300"
+                className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 group hover:shadow-xl hover:shadow-primary/10 transition-all duration-300"
               >
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                   <feature.icon className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="font-syne font-semibold text-xl text-text-dark mb-2">{feature.title}</h3>
-                <p className="text-muted text-sm">{feature.description}</p>
+                <h3 className="font-syne font-semibold text-xl text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-gray-500 text-sm">{feature.description}</p>
               </motion.div>
             ))}
           </div>
