@@ -1,0 +1,195 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design Tokens (dark theme defaults) ─────────────────── */
+:root {
+  --primary: #FF7D00;
+  --surface: #FFECD1;
+  --teal: #15616D;
+  --bg: #0D1B1E;
+  --text-light: #FFECD1;
+  --text-dark: #0D1B1E;
+  --muted: #7AA8AF;
+  --card-bg: #1A2426;
+  --input-bg: #1A2426;
+  --plan-inactive: #263537;
+}
+
+/* ─── Light Theme Overrides ───────────────────────────────── */
+html[data-theme="light"] {
+  --bg: #F0F5F6;
+  --text-light: #1A2B30;
+  --surface: #FFFFFF;
+  --muted: #5E8A91;
+  --card-bg: #FFFFFF;
+  --input-bg: #F5F9FA;
+  --plan-inactive: #EEF3F5;
+  color-scheme: light;
+}
+
+/* ─── Theme Transition ────────────────────────────────────── */
+.theme-transition,
+.theme-transition * {
+  transition: background-color 0.3s ease, color 0.3s ease,
+              border-color 0.3s ease !important;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background-color: var(--bg);
+  color: var(--text-light);
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+@layer base {
+  body {
+    @apply font-dm;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-syne;
+  }
+
+  code, pre, .mono {
+    @apply font-mono;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-text-dark px-6 py-3 rounded-full font-semibold
+           transition-all duration-300 hover:scale-[1.04] hover:shadow-[0_0_20px_rgba(255,125,0,0.5)]
+           focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg;
+  }
+
+  .btn-outline {
+    @apply border-2 border-primary text-primary bg-transparent px-6 py-3 rounded-full font-semibold
+           transition-all duration-300 hover:bg-primary hover:text-text-dark hover:scale-[1.04]
+           focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg;
+  }
+
+  .card {
+    background-color: var(--card-bg);
+    @apply text-text-light rounded-2xl shadow-lg p-6 border border-teal/10;
+    transition: background-color 0.3s ease;
+  }
+
+  .input-underline {
+    @apply bg-transparent border-b-2 border-muted text-text-light py-2 px-0
+           focus:outline-none focus:border-primary transition-colors duration-300;
+  }
+
+  .input-filled {
+    background-color: var(--input-bg);
+    @apply text-text-light rounded-lg py-3 px-4 border-2 border-teal/20
+           focus:outline-none focus:border-primary transition-all duration-300;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-[#FFAA4D] bg-clip-text text-transparent;
+  }
+
+  .glow {
+    box-shadow: 0 0 20px rgba(255, 125, 0, 0.4),
+                0 0 40px rgba(255, 125, 0, 0.2);
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg,
+      var(--teal) 0%,
+      rgba(21, 97, 109, 0.5) 50%,
+      var(--teal) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+}
+
+/* ─── Light Theme Class Overrides ─────────────────────────── */
+/* These override hardcoded Tailwind utilities in light mode.  */
+/* Specificity: element + attribute + class > single class, no !important needed */
+
+html[data-theme="light"] .bg-bg {
+  background-color: var(--bg);
+}
+
+html[data-theme="light"] .text-text-light {
+  color: var(--text-light);
+}
+
+html[data-theme="light"] .text-muted {
+  color: var(--muted);
+}
+
+html[data-theme="light"] .card {
+  background-color: var(--card-bg);
+  color: var(--text-light);
+  border-color: rgba(21, 97, 109, 0.12);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+}
+
+html[data-theme="light"] .input-filled {
+  background-color: var(--input-bg);
+  color: var(--text-light);
+  border-color: rgba(21, 97, 109, 0.25);
+}
+
+/* Plan inactive buttons in expense calculator */
+html[data-theme="light"] .bg-\[var\(--plan-inactive\)\] {
+  background-color: var(--plan-inactive);
+}
+
+/* ─── Dashboard Light Cards ──────────────────────────────── */
+/* Scoped to .dashboard-light so only DashboardPage is affected */
+.dashboard-light {
+  background-color: #F0F4F5;
+}
+
+/* White cards — exclude teal gradient banners */
+.dashboard-light .card:not([class*="from-teal"]) {
+  background-color: #FFFFFF !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06) !important;
+  color: #0D1B1E;
+}
+
+/* Dividers & borders inside white cards */
+.dashboard-light .card:not([class*="from-teal"]) [class*="border-teal"] {
+  border-color: rgba(0, 0, 0, 0.07) !important;
+}
+
+/* ─── Misc ────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--teal); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
