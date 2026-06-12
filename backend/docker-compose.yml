@@ -1,0 +1,86 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: buddyride_app
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - buddyride-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: buddyride_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-buddyride}
+      POSTGRES_USER: ${POSTGRES_USER:-buddyride_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-buddyride_secret}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - buddyride-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-buddyride_user} -d ${POSTGRES_DB:-buddyride}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: buddyride_redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - buddyride-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: buddyride_pgadmin
+    restart: always
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@buddyride.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-pgadmin_secret}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - buddyride-network
+    profiles:
+      - tools
+
+networks:
+  buddyride-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

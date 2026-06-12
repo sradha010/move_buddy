@@ -1,206 +1,240 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Phone } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate, Link } from 'react-router-dom';
+import { ArrowRight, Car, ChevronDown, AlertCircle } from 'lucide-react';
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 import { useApp } from '../store/AppContext';
 
-type AuthMode = 'login' | 'signup';
+declare global {
+  interface Window {
+    recaptchaVerifier?: RecaptchaVerifier;
+    confirmationResult?: ConfirmationResult;
+  }
+}
+
+const COUNTRY_CODES = [
+  { code: '+91',  flag: '🇮🇳', name: 'India',     digits: 10 },
+  { code: '+1',   flag: '🇺🇸', name: 'USA',       digits: 10 },
+  { code: '+44',  flag: '🇬🇧', name: 'UK',        digits: 10 },
+  { code: '+61',  flag: '🇦🇺', name: 'Australia', digits: 9  },
+  { code: '+971', flag: '🇦🇪', name: 'UAE',       digits: 9  },
+  { code: '+65',  flag: '🇸🇬', name: 'Singapore', digits: 8  },
+];
+
+function getErrorMessage(code: string, message: string): string {
+  switch (code) {
+    case 'auth/billing-not-enabled':
+      return 'Firebase billing is not enabled. Upgrade to Blaze plan in Firebase Console, or add this number as a test number in Authentication → Phone → Test numbers.';
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Please wait a few minutes and try again.';
+    case 'auth/invalid-phone-number':
+      return 'Invalid phone number. Please check the number and try again.';
+    case 'auth/operation-not-allowed':
+      return 'Phone sign-in is not enabled. Enable it in Firebase Console → Authentication → Sign-in method → Phone.';
+    case 'auth/quota-exceeded':
+      return 'SMS quota exceeded. Please try again later.';
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your internet connection and try again.';
+    default:
+      return message || 'Failed to send OTP. Please try again.';
+  }
+}
 
 export default function AuthPage() {
-  const [mode, setMode] = useState<AuthMode>('signup');
-  const [form, setForm] = useState({ name: '', email: '', phone: '' });
-  const [loading, setLoading] = useState(false);
+  const [phone, setPhone]               = useState('');
+  const [countryCode, setCountryCode]   = useState('+91');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState('');
   const navigate = useNavigate();
-  const { setUser, setAuthenticated } = useApp();
+  const { setUser, user } = useApp();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const selected = COUNTRY_CODES.find(c => c.code === countryCode) ?? COUNTRY_CODES[0];
+
+  useEffect(() => {
+    // Clean up any previous session
+    window.confirmationResult = undefined;
+    if (window.recaptchaVerifier) {
+      try { window.recaptchaVerifier.clear(); } catch {}
+      window.recaptchaVerifier = undefined;
+    }
+  }, []);
+
+  const setupRecaptcha = () => {
+    if (window.recaptchaVerifier) {
+      try { window.recaptchaVerifier.clear(); } catch {}
+    }
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+      size: 'invisible',
+      callback: () => {},
+      'expired-callback': () => { window.recaptchaVerifier = undefined; },
+    });
+  };
+
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < selected.digits) {
+      setError(`Please enter a valid ${selected.digits}-digit phone number.`);
+      return;
+    }
+    const fullPhone = `${countryCode}${digits}`;
     setLoading(true);
-
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    setUser({ name: form.name || 'User', email: form.email, phone: form.phone });
-    setAuthenticated(true);
-
-    // Navigate to OTP page
-    navigate('/auth/otp');
+    try {
+      setupRecaptcha();
+      await window.recaptchaVerifier!.render();
+      const confirmation = await signInWithPhoneNumber(auth, fullPhone, window.recaptchaVerifier!);
+      window.confirmationResult = confirmation;
+      setUser({ ...(user ?? { name: '', email: '' }), phone: fullPhone });
+      navigate('/auth/otp');
+    } catch (err: any) {
+      window.recaptchaVerifier = undefined;
+      setError(getErrorMessage(err?.code ?? '', err?.message ?? ''));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-bg flex">
-      {/* Left Panel - Brand */}
+    <div className="min-h-screen bg-bg flex flex-col items-center justify-center p-4">
+      <div id="recaptcha-container" />
+
       <motion.div
-        initial={{ x: -50, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.6 }}
-        className="hidden lg:flex flex-col justify-center items-center w-1/2 bg-teal p-12 relative overflow-hidden"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45 }}
+        className="w-full max-w-[360px]"
       >
-        {/* Decorative Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle at 30% 50%, #FF7D00 0%, transparent 40%)',
-          }} />
-        </div>
-
-        <div className="relative z-10 text-center">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary/30">
-              <Phone className="w-10 h-10 text-text-dark" />
-            </div>
-            <h1 className="font-syne font-bold text-4xl text-text-light mb-4">
-              BuddyRide
-            </h1>
-            <p className="text-text-light/80 text-lg max-w-sm">
-              Your daily commute, smarter. Share rides, save money, and make new connections.
-            </p>
-          </motion.div>
-        </div>
-
-        {/* Bottom decoration */}
+        {/* Brand */}
         <motion.div
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="absolute bottom-12 left-0 right-0 text-center text-text-light/50 text-sm"
+          className="text-center mb-8"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
         >
-          Trusted by 10,000+ commuters
+          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xl shadow-primary/25">
+            <Car className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="font-syne font-bold text-2xl text-text-light">BuddyRide</h1>
+          <p className="text-muted text-sm mt-0.5">Your daily commute, smarter</p>
         </motion.div>
-      </motion.div>
 
-      {/* Right Panel - Form */}
-      <motion.div
-        initial={{ x: 50, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.6 }}
-        className="flex-1 flex items-center justify-center p-8"
-      >
-        <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-8">
-            <h1 className="font-syne font-bold text-2xl text-text-light">BuddyRide</h1>
-          </div>
+        {/* Card */}
+        <div className="bg-[#0F2226] border border-teal/25 rounded-2xl p-6 shadow-2xl">
+          <h2 className="font-syne font-bold text-xl text-text-light mb-1">Enter your number</h2>
+          <p className="text-muted text-sm mb-5">We'll send a verification code via SMS</p>
 
-          {/* Tab Switcher */}
-          <div className="flex mb-8 border-b border-muted/30">
-            <button
-              onClick={() => setMode('login')}
-              className={`flex-1 pb-4 text-center font-medium transition-colors relative ${
-                mode === 'login' ? 'text-primary' : 'text-muted'
-              }`}
-            >
-              Login
-              {mode === 'login' && (
-                <motion.div
-                  layoutId="auth-tab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                />
-              )}
-            </button>
-            <button
-              onClick={() => setMode('signup')}
-              className={`flex-1 pb-4 text-center font-medium transition-colors relative ${
-                mode === 'signup' ? 'text-primary' : 'text-muted'
-              }`}
-            >
-              Sign Up
-              {mode === 'signup' && (
-                <motion.div
-                  layoutId="auth-tab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                />
-              )}
-            </button>
-          </div>
+          <form onSubmit={handleSendOtp} className="space-y-4">
 
-          {/* Heading */}
-          <h2 className="font-syne font-bold text-2xl text-text-light mb-2">
-            {mode === 'login' ? 'Welcome back' : 'Create your account'}
-          </h2>
-          <p className="text-muted mb-8">
-            {mode === 'login'
-              ? 'Enter your details to continue'
-              : 'Start your smart commute journey today'}
-          </p>
+            {/* Single unified phone input */}
+            <div className="relative flex items-center bg-teal/10 border border-teal/30 rounded-xl overflow-visible focus-within:border-primary transition-colors">
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {mode === 'signup' && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
+              {/* Country code button — left side */}
+              <button
+                type="button"
+                onClick={() => setShowDropdown(v => !v)}
+                className="flex items-center gap-1.5 h-12 px-3 border-r border-teal/30 text-text-light text-sm hover:bg-teal/20 transition-colors shrink-0"
               >
-                <label className="block text-sm text-text-light mb-2">Full Name</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="input-underline w-full"
-                  placeholder="John Doe"
-                  required={mode === 'signup'}
-                />
-              </motion.div>
-            )}
+                <span className="text-base leading-none">{selected.flag}</span>
+                <span className="font-mono">{selected.code}</span>
+                <ChevronDown className={`w-3 h-3 text-muted transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} />
+              </button>
 
-            <div>
-              <label className="block text-sm text-text-light mb-2">Email</label>
+              {/* Phone number input — right side */}
               <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="input-underline w-full"
-                placeholder="john@example.com"
+                type="tel"
+                value={phone}
+                onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 12))}
+                placeholder="Enter phone number"
                 required
+                autoFocus
+                className="flex-1 h-12 px-4 bg-transparent text-text-light placeholder-muted/40 font-mono text-base focus:outline-none"
               />
+
+              {/* Country dropdown */}
+              <AnimatePresence>
+                {showDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-[calc(100%+6px)] left-0 z-50 w-56 bg-[#0F2226] border border-teal/30 rounded-xl overflow-hidden shadow-2xl"
+                  >
+                    {COUNTRY_CODES.map(c => (
+                      <button
+                        key={c.code}
+                        type="button"
+                        onClick={() => { setCountryCode(c.code); setShowDropdown(false); }}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-teal/20 ${
+                          countryCode === c.code ? 'bg-primary/10 text-primary' : 'text-text-light'
+                        }`}
+                      >
+                        <span className="text-base">{c.flag}</span>
+                        <span className="flex-1 text-left">{c.name}</span>
+                        <span className="font-mono text-xs text-muted">{c.code}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            <div>
-              <label className="block text-sm text-text-light mb-2">Phone Number</label>
-              <div className="flex items-center gap-2">
-                <span className="text-text-light px-2 py-2 border-b-2 border-muted">
-                  +91
-                </span>
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="input-underline flex-1"
-                  placeholder="9876543210"
-                  required
-                />
-              </div>
-            </div>
+            {/* Error box */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex items-start gap-2.5 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">{error}</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
+            {/* CTA */}
             <motion.button
               type="submit"
-              disabled={loading}
-              whileHover={{ scale: 1.02 }}
+              disabled={loading || phone.replace(/\D/g, '').length < selected.digits}
+              whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
-              className="btn-primary w-full flex items-center justify-center gap-2 py-4"
+              className={`w-full h-12 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 ${
+                !loading && phone.replace(/\D/g, '').length >= selected.digits
+                  ? 'bg-primary text-white shadow-lg shadow-primary/25 hover:shadow-primary/40'
+                  : 'bg-primary/20 text-primary/40 cursor-not-allowed'
+              }`}
             >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-text-dark border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  Continue
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
+              {loading
+                ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                : <> Get OTP <ArrowRight className="w-4 h-4" /> </>
+              }
             </motion.button>
-          </form>
 
-          {/* Terms */}
-          <p className="text-center text-muted text-xs mt-8">
-            By continuing, you agree to our{' '}
-            <a href="#" className="text-primary hover:underline">Terms of Service</a>
-            {' '}and{' '}
-            <a href="#" className="text-primary hover:underline">Privacy Policy</a>
-          </p>
+          </form>
+        </div>
+
+        {/* Footer note */}
+        <p className="text-center text-muted/50 text-xs mt-5 leading-relaxed">
+          By continuing, you agree to our{' '}
+          <a href="#" className="text-primary/70 hover:text-primary transition-colors">Terms of Service</a>
+          {' '}&amp;{' '}
+          <a href="#" className="text-primary/70 hover:text-primary transition-colors">Privacy Policy</a>
+        </p>
+
+        <div className="text-center mt-3">
+          <Link
+            to="/admin/login"
+            className="text-muted/30 hover:text-muted/60 text-xs transition-colors duration-200"
+          >
+            Admin Portal
+          </Link>
         </div>
       </motion.div>
     </div>

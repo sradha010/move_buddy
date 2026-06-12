@@ -13,17 +13,28 @@ import SubscribePage from './pages/SubscribePage';
 import HostDashboard from './pages/HostDashboard';
 import DashboardPage from './pages/DashboardPage';
 import AdminPanel from './pages/AdminPanel';
+import ProfilePage from './pages/ProfilePage';
+import AdminLoginPage from './pages/AdminLoginPage';
 
-// Protected Route wrapper
+// ─── Guards ───────────────────────────────────────────────────────────────────
+
+/** Any logged-in user (guest, host, admin) */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useApp();
-  if (!isAuthenticated) {
-    return <Navigate to="/auth/login" replace />;
-  }
+  if (!isAuthenticated) return <Navigate to="/auth/login" replace />;
   return <>{children}</>;
 }
 
-// Layout with Navbar
+/** Only role === 'admin'. Everyone else → /dashboard */
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, user } = useApp();
+  if (!isAuthenticated) return <Navigate to="/auth/login" replace />;
+  if (user?.role !== 'admin') return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
 function Layout({ children, showNavbar = true }: { children: React.ReactNode; showNavbar?: boolean }) {
   return (
     <>
@@ -34,86 +45,37 @@ function Layout({ children, showNavbar = true }: { children: React.ReactNode; sh
   );
 }
 
+// ─── Routes ───────────────────────────────────────────────────────────────────
+
 function AppRoutes() {
   return (
     <Routes>
-      {/* Public Routes */}
+      {/* Public */}
       <Route path="/" element={<Layout showNavbar={false}><LandingPage /></Layout>} />
 
-      {/* Auth Routes */}
-      <Route path="/auth/login" element={<AuthPage />} />
-      <Route path="/auth/otp" element={<OTPPage />} />
-      <Route path="/auth/mode-select" element={<ModeSelectPage />} />
+      {/* Auth */}
+      <Route path="/auth/login"       element={<AuthPage />} />
+      <Route path="/auth/signup"      element={<AuthPage />} />  {/* alias */}
+      <Route path="/auth/otp"         element={<OTPPage />} />
+      <Route path="/auth/mode-select" element={<ProtectedRoute><ModeSelectPage /></ProtectedRoute>} />
+      <Route path="/admin/login"      element={<AdminLoginPage />} />
 
-      {/* Protected Routes */}
-      <Route
-        path="/home"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <HomePage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <DashboardPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+      {/* Normal user pages — any authenticated user */}
+      <Route path="/home"      element={<ProtectedRoute><Layout><HomePage /></Layout></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><Layout><DashboardPage /></Layout></ProtectedRoute>} />
+      <Route path="/profile"   element={<ProtectedRoute><Layout><ProfilePage /></Layout></ProtectedRoute>} />
 
-      {/* Guest Routes */}
-      <Route
-        path="/guest/find"
-        element={
-          <Layout>
-            <FindRidePage />
-          </Layout>
-        }
-      />
-      <Route
-        path="/guest/subscribe"
-        element={
-          <Layout>
-            <SubscribePage />
-          </Layout>
-        }
-      />
+      {/* Guest routes */}
+      <Route path="/guest/find"      element={<Layout><FindRidePage /></Layout>} />
+      <Route path="/guest/subscribe" element={<Layout><SubscribePage /></Layout>} />
 
-      {/* Host Routes */}
-      <Route
-        path="/host/offer"
-        element={
-          <Layout>
-            <OfferRidePage />
-          </Layout>
-        }
-      />
-      <Route
-        path="/host/dashboard"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <HostDashboard />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+      {/* Host routes */}
+      <Route path="/host/offer"     element={<Layout><OfferRidePage /></Layout>} />
+      <Route path="/host/dashboard" element={<ProtectedRoute><Layout><HostDashboard /></Layout></ProtectedRoute>} />
 
-      {/* Admin Route */}
-      <Route
-        path="/admin"
-        element={
-          <Layout showNavbar={false}>
-            <AdminPanel />
-          </Layout>
-        }
-      />
+      {/* Admin — role === 'admin' only. Any other user gets redirected to /dashboard */}
+      <Route path="/admin/*" element={<AdminRoute><AdminPanel /></AdminRoute>} />
+      <Route path="/admin"   element={<AdminRoute><AdminPanel /></AdminRoute>} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -121,7 +83,7 @@ function AppRoutes() {
   );
 }
 
-function App() {
+export default function App() {
   return (
     <BrowserRouter>
       <AppProvider>
@@ -130,5 +92,3 @@ function App() {
     </BrowserRouter>
   );
 }
-
-export default App;
